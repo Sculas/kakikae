@@ -88,6 +88,7 @@ macro_rules! install_hooks {
             #[doc(hidden)]
             #[inline(never)]
             unsafe extern "C" fn [<__hook_ $hook_fn>]($($($arg: $argtype),*)?) $(-> $rtype:ty)? {
+                $crate::eprintln!("calling hooked function: {}", stringify!($hook_fn));
                 $hook_fn([<__original_ $hook_fn>] $(, $($arg),*)?)
             }
 
@@ -97,9 +98,11 @@ macro_rules! install_hooks {
             unsafe fn [<__original_ $hook_fn>]($($($arg: $argtype),*)?) $(-> $rtype:ty)? {
                 #[allow(static_mut_refs)] // this is fine...
                 let Some(sus) = [<__hook_ctx_ $hook_fn>].as_ref() else {
+                    $crate::eprintln!("FATAL: missing hook context for {}", stringify!($hook_fn));
                     core::hint::unreachable_unchecked();
                 };
 
+                $crate::eprintln!("calling original function: {}", stringify!($hook_fn));
                 $crate::hooks::__disable_hook(sus.original, sus.backup);
                 let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(sus.original);
                 let result = original($($arg),*);
@@ -111,6 +114,7 @@ macro_rules! install_hooks {
             #[doc(hidden)]
             #[inline(never)]
             unsafe fn [<__install_ $hook_fn>](orig_addr: *mut u8) {
+                $crate::eprintln!("installing hook: {}", stringify!($hook_fn));
                 let backup = $crate::hooks::__enable_hook(orig_addr, [<__hook_ $hook_fn>] as _);
                 [<__hook_ctx_ $hook_fn>] = Some([<__hook_ctx_ty_ $hook_fn>] {
                     original: orig_addr,
@@ -143,6 +147,12 @@ pub unsafe fn __disable_hook(orig_fn: *mut u8, orig_code: [u8; bhook::BACKUP_LEN
 unsafe fn clear_cache_and_flush<T>(start: *const T, end: *const T) {
     let start_addr = start as usize;
     let end_addr = end as usize;
+
+    crate::eprintln!(
+        "clear_cache_and_flush: 0x{:08X} -> 0x{:08X}",
+        start_addr,
+        end_addr
+    );
 
     // Clean and invalidate data cache by MVA (Modified Virtual Address)
     let mut addr = start_addr & !31; // Align to cache line (32 bytes for Cortex-A9)

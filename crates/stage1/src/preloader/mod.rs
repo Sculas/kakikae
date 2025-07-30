@@ -6,14 +6,14 @@ use core::fmt::{self, Write};
 #[macro_export]
 macro_rules! eprintln {
     ($($arg:tt)*) => {
-        $crate::preloader::println(format_args!($($arg)*))
+        $crate::preloader::println(format_args!($($arg)*), module_path!(), line!())
     };
 }
 
 #[doc(hidden)]
-pub fn println(args: fmt::Arguments) {
+pub fn println(args: fmt::Arguments, module: &str, line: u32) {
     let mut buffer = heapless::String::<256>::new();
-    write!(&mut buffer, "[kakikae] {args}\n\0").ok();
+    write!(&mut buffer, "[{module}:{line}] {args}\n\0").ok();
     crate::ffi_internal_printf!()(buffer.as_ptr() as _);
 }
 
@@ -35,12 +35,15 @@ unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
     //     rtc_mark_bypass_pwrkey();
     //     return BR_POWER_KEY;
     // }
+    eprintln!("Fixing boot reason to BR_POWER_KEY");
     core::ptr::write_volatile(ffi::BOOT_REASON, 0);
     ffi::rtc_mark_bypass_pwrkey();
 
     // Install the LK hooks before jumping to LK.
+    eprintln!("Installing LK hooks");
     crate::lk::lk_install_hooks();
 
     // Continue the jump to Little Kernel (LK).
+    eprintln!("Jumping to LK (0x{:08X}, 0x{:08X})", arg1, arg2);
     ffi::original_bldr_jump64(addr, arg1, arg2);
 }

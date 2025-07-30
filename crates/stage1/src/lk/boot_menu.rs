@@ -1,5 +1,5 @@
 use crate::lk::{LK_BASE, LK_SIZE};
-use crate::{lk::utils::mdelay, *};
+use crate::{lk::utils::*, *};
 use core::ffi::*;
 
 pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
@@ -14,9 +14,6 @@ pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
 }, {
     "38 B5 04 46 ? ? ? FF" @ 2,
     mtk_detect_key(key: c_ushort) -> c_int
-}, {
-    "10 B5 04 46 ? ? ? FF A0 42" @ 2,
-    get_timer(base: c_ulong) -> c_ulong
 });
 
 install_hooks!(install_hooks; (LK_BASE, LK_SIZE) {
