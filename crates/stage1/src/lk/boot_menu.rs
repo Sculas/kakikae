@@ -3,16 +3,16 @@ use crate::{lk::utils::*, *};
 use core::ffi::*;
 
 pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
-    "? ? ? ? ? ? ? 02 13 68 ? ? ? 03 ? ? ? 53" @ 2,
+    "? ? ? ? ? ? ? 02 13 68 ? ? ? 03 ? ? ? 53" @ 1,
     mtk_wdt_disable()
 }, {
-    "10 B5 ? ? ? FA 04 46" @ 2,
+    "10 B5 ? ? ? FA 04 46" @ 1,
     mt65xx_backlight_on()
 }, {
-    "2D E9 F8 43 ? ? ? ? ? ? ? 09" @ 2,
+    "2D E9 F8 43 ? ? ? ? ? ? ? 09" @ 1,
     mtk_wdt_init()
 }, {
-    "38 B5 04 46 ? ? ? FF" @ 2,
+    "38 B5 04 46 ? ? ? FF" @ 1,
     mtk_detect_key(key: c_ushort) -> c_int
 });
 

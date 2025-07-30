@@ -38,6 +38,7 @@ macro_rules! pattern_match {
                     $crate::__create_pattern!([<__pattern_ $func>] = $pat @ $align);
                     // Execute the pattern match and store the address of the first match.
                     for match_addr in [<__pattern_ $func>].matches(&*match_area) {
+                        let match_addr = $base + match_addr;
                         $crate::eprintln!("Found match for {} at 0x{:08X}", stringify!($func), match_addr);
                         [<__addr_ $func>] = $crate::pattern_match!(@mod match_addr; $($mod)?) as _;
                         break;
@@ -73,6 +74,7 @@ macro_rules! install_hooks {
                     $crate::__create_pattern!([<__pattern_ $hook_fn>] = $pat @ $align);
                     // Install the hook at the pattern matches.
                     for match_addr in [<__pattern_ $hook_fn>].matches(&*match_area) {
+                        let match_addr = $base + match_addr;
                         $crate::eprintln!("Found match for {} at 0x{:08X}", stringify!($hook_fn), match_addr);
                         unsafe { [<__install_ $hook_fn>](match_addr as _) };
                     }
