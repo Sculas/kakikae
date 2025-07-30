@@ -1,0 +1,25 @@
+[package]
+name = "stage1"
+authors = ["Sculas"]
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# workaround for https://github.com/rust-lang/vscode-rust/issues/729
+[[bin]]
+name = "stage1"
+test = false
+bench = false
+doctest = false
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+strip = true
+lto = true
+
+[dependencies]
+pastey = "*"
+heapless = "0.8"
+patterns = "0.3.0"
+bhook = { version = "0.1.2", default-features = false }
