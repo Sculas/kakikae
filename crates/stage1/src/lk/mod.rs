@@ -14,6 +14,12 @@ pub unsafe fn lk_install_hooks() {
     let start_ms = utils::get_timer(0);
 
     eprintln!(
+        "({}ms) display::pattern_match",
+        utils::get_timer(start_ms)
+    );
+    display::pattern_match();
+
+    eprintln!(
         "({}ms) boot_menu::pattern_match",
         utils::get_timer(start_ms)
     );

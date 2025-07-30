@@ -3,6 +3,14 @@ pub unsafe fn install_hook_at(target: *mut u32, hook_fn_addr: usize) {
     target.offset(1).write_unaligned(hook_fn_addr as _);
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __create_pattern {
+    ($name:ident = $pat:literal @ $align:literal) => {
+        const $name: patterns::Pattern<$align, { macros::pattern_len!($pat) }> = patterns::Pattern::new($pat);
+    };
+}
+
 #[macro_export]
 macro_rules! pattern_match {
     ($match_fn:ident; ($base:expr, $size:expr) $({
@@ -22,15 +30,14 @@ macro_rules! pattern_match {
             pub unsafe fn $match_fn() {
                 $crate::eprintln!("Running pattern match for: {}", stringify!($match_fn));
                 $crate::eprintln!("Base: 0x{:08X}, Size: 0x{:08X}", $base, $size);
-                let match_area = core::slice::from_raw_parts($base as _, $base + $size);
+                let match_area = core::ptr::slice_from_raw_parts($base as _, $base + $size);
+                $crate::eprintln!("Match area is valid...");
                 $({
-                    // Create the pattern from the string. This should never fail, and is UB if it does.
-                    let Ok(pattern) = patterns::Pattern::<$align, { patterns::OPTIMAL_BYTES }>::from_str($pat) else {
-                        $crate::eprintln!("FATAL: Failed to parse pattern: {}", $pat);
-                        core::hint::unreachable_unchecked();
-                    };
+                    $crate::eprintln!("Pattern: {} @ {}", $pat, $align);
+                    // Create the pattern from the string.
+                    $crate::__create_pattern!([<__pattern_ $func>] = $pat @ $align);
                     // Execute the pattern match and store the address of the first match.
-                    for match_addr in pattern.matches(match_area) {
+                    for match_addr in [<__pattern_ $func>].matches(&*match_area) {
                         $crate::eprintln!("Found match for {} at 0x{:08X}", stringify!($func), match_addr);
                         [<__addr_ $func>] = $crate::pattern_match!(@mod match_addr; $($mod)?) as _;
                         break;
@@ -60,19 +67,16 @@ macro_rules! install_hooks {
             pub unsafe fn $install_fn() {
                 $crate::eprintln!("Running pattern match for: {}", stringify!($match_fn));
                 $crate::eprintln!("Base: 0x{:08X}, Size: 0x{:08X}", $base, $size);
-                let match_area = core::slice::from_raw_parts($base as _, $base + $size);
+                let match_area = core::ptr::slice_from_raw_parts($base as _, $base + $size);
                 $({
-                    // Create the pattern from the string. This should never fail, and is UB if it does.
-                    let Ok(pattern) = patterns::Pattern::<$align, { patterns::OPTIMAL_BYTES }>::from_str($pat) else {
-                        $crate::eprintln!("FATAL: Failed to parse pattern: {}", $pat);
-                        core::hint::unreachable_unchecked();
-                    };
+                    // Create the pattern from the string.
+                    $crate::__create_pattern!([<__pattern_ $hook_fn>] = $pat @ $align);
                     // Install the hook at the pattern matches.
-                    for match_addr in pattern.matches(match_area) {
-                        $crate::eprintln!("Found match for {} at 0x{:08X}", stringify!($func), match_addr);
+                    for match_addr in [<__pattern_ $hook_fn>].matches(&*match_area) {
+                        $crate::eprintln!("Found match for {} at 0x{:08X}", stringify!($hook_fn), match_addr);
                         unsafe { [<__install_ $hook_fn>](match_addr as _) };
                     }
-                    $crate::eprintln!("Finished pattern match for {}", stringify!($func));
+                    $crate::eprintln!("Finished pattern match for {}", stringify!($hook_fn));
                 })*
             }
         }

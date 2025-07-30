@@ -1,11 +1,12 @@
 [build]
-target = "thumbv7m-none-eabi"
+target = "armv7a-none-eabi"
 
-[target.thumbv7m-none-eabi]
+[target.armv7a-none-eabi]
 rustflags = [
-    "-C", "target-cpu=cortex-a9",
-    "-C", "link-arg=-Tlink.x",
-    "-C", "link-arg=--nmagic",
+    "-Ctarget-cpu=cortex-a9",
+    "-Ctarget-feature=+thumb-mode",
+    "-Clink-arg=-Tlink.x",
+    "-Clink-arg=--nmagic",
     "-Zlocation-detail=none",
 ]
 

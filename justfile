@@ -9,7 +9,7 @@ default:
 stage1:
     cargo build --release
     @just _create-dir-{{ os_family() }} build
-    cp target/thumbv7m-none-eabi/release/stage1 build/stage1.elf
+    cp target/armv7a-none-eabi/release/stage1 build/stage1.elf
     elfloader --binary build/stage1.elf build/stage1.bin
 
 clean:

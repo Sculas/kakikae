@@ -1,4 +1,4 @@
 [toolchain]
 channel = "nightly-2025-07-25"
-targets = ["thumbv7m-none-eabi"]
+targets = ["armv7a-none-eabi"]
 components = ["rust-src"]
