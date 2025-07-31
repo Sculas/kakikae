@@ -22,6 +22,10 @@ macro_rules! pattern_match {
                 #[doc(hidden)]
                 static mut [<__addr_ $func>]: *const u8 = 0x0 as _;
                 $vis unsafe fn $func($($arg: $argtype),*) $(-> $rtype)? {
+                    if [<__addr_ $func>].is_null() {
+                        return Default::default();
+                    }
+
                     let func: extern "C" fn($($argtype),*) $(-> $rtype)? = core::mem::transmute([<__addr_ $func>]);
                     func($($arg),*)
                 }

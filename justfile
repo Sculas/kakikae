@@ -9,7 +9,7 @@ default:
 stage1:
     cargo build --release
     @just _create-dir-{{ os_family() }} build
-    cp target/armv7a-none-eabi/release/stage1 build/stage1.elf
+    cp target/armv7a-none-eabi/release/kakikae build/stage1.elf
     elfloader --binary build/stage1.elf build/stage1.bin
 
 clean:
@@ -18,5 +18,5 @@ clean:
 _create-dir-windows directory:
     md -Force {{ directory }} > $null
 
-_create-dir-unix directory:
+_create-dir-linux directory:
     mkdir -p {{ directory }} > /dev/null

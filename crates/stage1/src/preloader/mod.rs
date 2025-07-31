@@ -12,8 +12,9 @@ macro_rules! eprintln {
 
 #[doc(hidden)]
 pub fn println(args: fmt::Arguments, module: &str, line: u32) {
+    let time = unsafe { crate::lk::GLOBAL_TIMER };
     let mut buffer = heapless::String::<256>::new();
-    write!(&mut buffer, "[{module}:{line}] {args}\n\0").ok();
+    write!(&mut buffer, "[{time}][{module}:{line}] {args}\n\0").ok();
     crate::ffi_internal_printf!()(buffer.as_ptr() as _);
 }
 

@@ -7,27 +7,19 @@ mod utils;
 pub const LK_BASE: usize = 0x4C400000;
 pub const LK_SIZE: usize = 0x00100000;
 
+pub static mut GLOBAL_TIMER: u32 = u32::MAX;
+
 pub unsafe fn lk_install_hooks() {
-    eprintln!("(init) utils::pattern_match");
+    eprintln!("utils::pattern_match");
     utils::pattern_match();
+    GLOBAL_TIMER = utils::get_timer(0);
 
-    let start_ms = utils::get_timer(0);
-
-    eprintln!(
-        "({}ms) display::pattern_match",
-        utils::get_timer(start_ms)
-    );
+    eprintln!("display::pattern_match");
     display::pattern_match();
 
-    eprintln!(
-        "({}ms) boot_menu::pattern_match",
-        utils::get_timer(start_ms)
-    );
+    eprintln!("boot_menu::pattern_match");
     boot_menu::pattern_match();
 
-    eprintln!(
-        "({}ms) boot_menu::install_hooks",
-        utils::get_timer(start_ms)
-    );
+    eprintln!("boot_menu::install_hooks");
     boot_menu::install_hooks();
 }
