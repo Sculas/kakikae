@@ -11,10 +11,16 @@ macro_rules! eprintln {
 }
 
 #[doc(hidden)]
+#[rustfmt::skip]
 pub fn println(args: fmt::Arguments, module: &str, line: u32) {
-    let time = unsafe { crate::lk::GLOBAL_TIMER };
     let mut buffer = heapless::String::<256>::new();
-    write!(&mut buffer, "[{time}][{module}:{line}] {args}\n\0").ok();
+    let mut tm = ffi::RtcTime::default();
+    ffi::rtc_get_time(&mut tm);
+    write!(
+        &mut buffer,
+        "[{}/{}/{} {}:{}:{}][{module}:{line}] {args}\n\0",
+        tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec
+    ).ok();
     crate::ffi_internal_printf!()(buffer.as_ptr() as _);
 }
 

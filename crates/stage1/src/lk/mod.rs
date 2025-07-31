@@ -7,12 +7,9 @@ mod utils;
 pub const LK_BASE: usize = 0x4C400000;
 pub const LK_SIZE: usize = 0x00100000;
 
-pub static mut GLOBAL_TIMER: u32 = u32::MAX;
-
 pub unsafe fn lk_install_hooks() {
     eprintln!("utils::pattern_match");
     utils::pattern_match();
-    GLOBAL_TIMER = utils::get_timer(0);
 
     eprintln!("display::pattern_match");
     display::pattern_match();
