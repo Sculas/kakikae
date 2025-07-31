@@ -22,5 +22,4 @@ lto = true
 pastey = "*"
 heapless = "0.8"
 patterns = "0.3.0"
-bhook = { version = "0.1.2", default-features = false }
 macros = { path = "../macros" }

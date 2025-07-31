@@ -3,12 +3,6 @@
 version = 4
 
 [[package]]
-name = "bhook"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2878cdfdead620502495f314ecda640f8af72796dd56b617c005d1044aff5996"
-
-[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -37,7 +31,6 @@ dependencies = [
 name = "kakikae"
 version = "0.0.0"
 dependencies = [
- "bhook",
  "heapless",
  "macros",
  "pastey",

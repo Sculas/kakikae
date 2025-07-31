@@ -10,9 +10,12 @@ macro_rules! eprintln {
     };
 }
 
+static mut PASSED_PL_STAGE: bool = false;
+
 #[doc(hidden)]
 #[rustfmt::skip]
 pub fn println(args: fmt::Arguments, module: &str, line: u32) {
+    if unsafe { !PASSED_PL_STAGE } { return; }
     let mut buffer = heapless::String::<256>::new();
     let mut tm = ffi::RtcTime::default();
     ffi::rtc_get_time(&mut tm);
@@ -34,6 +37,7 @@ pub unsafe fn install_preloader_bldr_jump64_hook() {
 
 #[inline(never)]
 unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
+    PASSED_PL_STAGE = true;
     eprintln!("Stage 2: Jumping from Preloader -> LK (0x{:08X})", addr);
 
     // Force the boot reason to BR_POWER_KEY as indicated by MTK:

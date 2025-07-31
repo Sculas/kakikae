@@ -1,3 +1,5 @@
+pub mod raw;
+
 pub unsafe fn install_hook_at(target: *mut u32, hook_fn_addr: usize) {
     target.write_unaligned(0x47304e00); // ldr r6, [pc, #0]; bx r6
     target.offset(1).write_unaligned(hook_fn_addr as _);
@@ -7,7 +9,8 @@ pub unsafe fn install_hook_at(target: *mut u32, hook_fn_addr: usize) {
 #[macro_export]
 macro_rules! __create_pattern {
     ($name:ident = $pat:literal @ $align:literal) => {
-        const $name: patterns::Pattern<$align, { macros::pattern_len!($pat) }> = patterns::Pattern::new($pat);
+        const $name: patterns::Pattern<$align, { macros::pattern_len!($pat) }> =
+            patterns::Pattern::new($pat);
     };
 }
 
@@ -34,7 +37,7 @@ macro_rules! pattern_match {
             pub unsafe fn $match_fn() {
                 $crate::eprintln!("Running pattern match for: {}", stringify!($match_fn));
                 $crate::eprintln!("Base: 0x{:08X}, Size: 0x{:08X}", $base, $size);
-                let match_area = core::ptr::slice_from_raw_parts($base as _, $base + $size);
+                let match_area = core::ptr::slice_from_raw_parts($base as _, $size);
                 $crate::eprintln!("Match area is valid...");
                 $({
                     $crate::eprintln!("Pattern: {} @ {}", $pat, $align);
@@ -98,7 +101,7 @@ macro_rules! install_hooks {
             struct [<__hook_ctx_ty_ $hook_fn>] {
                 original: *mut u8,
                 hook: *const u8,
-                backup: [u8; bhook::BACKUP_LEN]
+                backup: [u8; $crate::hooks::raw::BACKUP_LEN]
             }
 
             // This is the only type exposed to the user, since they will need this in their hook.
@@ -147,21 +150,18 @@ macro_rules! install_hooks {
 }
 
 #[doc(hidden)]
-pub unsafe fn __enable_hook(orig_fn: *mut u8, hook_fn: *const u8) -> [u8; bhook::BACKUP_LEN] {
-    let orig_fn = orig_fn.offset(-1);
-    let backup = orig_fn.cast::<[u8; bhook::BACKUP_LEN]>().read_unaligned();
-    bhook::raw_hook(orig_fn, hook_fn as usize);
-    clear_cache_and_flush(orig_fn, orig_fn.add(bhook::BACKUP_LEN));
+pub unsafe fn __enable_hook(orig_fn: *mut u8, hook_fn: *const u8) -> [u8; raw::BACKUP_LEN] {
+    let backup = orig_fn.cast::<[u8; raw::BACKUP_LEN]>().read_unaligned();
+    raw::write_hook(orig_fn, hook_fn as usize);
+    clear_cache_and_flush(orig_fn, orig_fn.add(raw::BACKUP_LEN));
     backup
 }
 
 #[doc(hidden)]
-pub unsafe fn __disable_hook(orig_fn: *mut u8, orig_code: [u8; bhook::BACKUP_LEN]) {
-    let backup = orig_fn.offset(-1).cast::<[u8; bhook::BACKUP_LEN]>();
-    backup.write_unaligned(orig_code);
-
-    let orig_fn = orig_fn.cast_const();
-    clear_cache_and_flush(orig_fn, orig_fn.add(bhook::BACKUP_LEN));
+#[rustfmt::skip]
+pub unsafe fn __disable_hook(orig_fn: *mut u8, orig_code: [u8; raw::BACKUP_LEN]) {
+    orig_fn.cast::<[u8; raw::BACKUP_LEN]>().write_unaligned(orig_code);
+    clear_cache_and_flush(orig_fn, orig_fn.add(raw::BACKUP_LEN));
 }
 
 unsafe fn clear_cache_and_flush<T>(start: *const T, end: *const T) {

@@ -17,7 +17,7 @@ pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
 });
 
 install_hooks!(install_hooks; (LK_BASE, LK_SIZE) {
-    "70 B5 61 4C" @ 2,
+    "70 B5 61 4C" @ 1,
     boot_mode_select_hook(orig: _),
 });
 
