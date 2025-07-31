@@ -75,7 +75,7 @@ macro_rules! install_hooks {
             pub unsafe fn $install_fn() {
                 $crate::eprintln!("Running pattern match for: {}", stringify!($match_fn));
                 $crate::eprintln!("Base: 0x{:08X}, Size: 0x{:08X}", $base, $size);
-                let match_area = core::ptr::slice_from_raw_parts($base as _, $base + $size);
+                let match_area = core::ptr::slice_from_raw_parts($base as _, $size);
                 $({
                     // Create the pattern from the string.
                     $crate::__create_pattern!([<__pattern_ $hook_fn>] = $pat @ $align);
