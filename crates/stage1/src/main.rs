@@ -41,19 +41,20 @@ macro_rules! def_extern {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> ! {
-    const HELLO_MAGIC: u32 = 0x48454C4F; // "HELO"
+    // const HELLO_MAGIC: u32 = 0x48454C4F; // "HELO"
 
     brom::uart_println("kakikae / stage 1 (mt6785)");
     brom::ffi::send_usb_response(1, 0, 1); // prevent timeout
 
-    brom::uart_println("acknowledging our existence...");
-    brom::ffi::usbdl_put_dword(HELLO_MAGIC);
-    let mut echo = 0;
-    brom::ffi::usbdl_get_dword(&mut echo);
-    if echo != HELLO_MAGIC {
-        brom::uart_println("echo mismatch, halting!");
-        panic!();
-    }
+    // TODO: add this back in before release...
+    // brom::uart_println("acknowledging our existence...");
+    // brom::ffi::usbdl_put_dword(HELLO_MAGIC);
+    // let mut echo = 0;
+    // brom::ffi::usbdl_get_dword(&mut echo);
+    // if echo != HELLO_MAGIC {
+    //     brom::uart_println("echo mismatch, halting!");
+    //     panic!("echo mismatch, can't continue");
+    // }
 
     brom::uart_println("disabling SLA/DAA checks...");
     write_volatile(brom::ffi::SLA_PASSED_1, 1);
