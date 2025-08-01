@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+authors = ["Sculas"]
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+xflags = "0.4.0-pre.2"
+xshell = "0.3.0-pre.2"

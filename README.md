@@ -5,14 +5,8 @@
 
 ## Requirements
 
-1. Install [Just](https://github.com/casey/just) to run the build scripts:
-   - Find the installation instructions for your platform [here](https://github.com/casey/just#packages).
-
-2. Install [Rust](https://rustup.rs/) first and then install the toolchain for this project:
-   - `cd kakikae && rustup install` (uses the `rust-toolchain.toml` file)
-
-3. Install [elfloader](https://github.com/gamozolabs/elfloader) using Rust: (TODO: make our own, this one outdated)
-   - `cargo install --git https://github.com/gamozolabs/elfloader.git elfloader`
+1. Install [Rust](https://rustup.rs/) first and then install the toolchain for this project:
+    - `cd kakikae && rustup install` (uses the `rust-toolchain.toml` file)
 
 ## Usage
 

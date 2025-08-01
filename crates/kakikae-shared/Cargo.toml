@@ -1,0 +1,12 @@
+[package]
+name = "kakikae-shared"
+authors = ["Sculas"]
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# workaround for https://github.com/rust-lang/vscode-rust/issues/729
+[lib]
+test = false
+bench = false
+doctest = false

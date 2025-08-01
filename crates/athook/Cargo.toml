@@ -1,0 +1,17 @@
+[package]
+name = "athook"
+authors = ["Sculas"]
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# workaround for https://github.com/rust-lang/vscode-rust/issues/729
+[lib]
+test = false
+bench = false
+doctest = false
+
+[dependencies]
+athook-macros = { path = "../athook-macros" }
+pastey = "*"
+patterns = "0.3.0"
