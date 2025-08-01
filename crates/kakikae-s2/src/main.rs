@@ -20,8 +20,15 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-core::arch::global_asm!(include_str!("start.S"));
 const _: kakikae_shared::S2_ENTRY_POINT = main;
+
+// global_asm! doesn't respect the RUSTFLAGS, so it compiles in ARM mode anyway, and we MUST
+// have Thumb2 mode here. So we use a #[naked] function here, that does respect the RUSTFLAGS.
+#[unsafe(no_mangle)]
+#[unsafe(naked)]
+pub unsafe extern "C" fn start() {
+    core::arch::naked_asm!("b main")
+}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main(pl_print_ptr: usize, in_pl_phase: *const bool) {

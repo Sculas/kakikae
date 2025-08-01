@@ -1,3 +1,4 @@
+.syntax unified
 .arm
 
 .global start
