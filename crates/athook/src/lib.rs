@@ -22,6 +22,22 @@ pub unsafe fn install_hook_at(target: *mut u32, hook_fn_addr: usize) {
     target.offset(1).write_unaligned(hook_fn_addr as _);
 }
 
+#[derive(Copy, Clone)]
+pub struct MatchAddress(pub u32);
+
+impl core::ops::Deref for MatchAddress {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl core::fmt::Display for MatchAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:#010X} (w/h: {:#010X})", self.0, self.0 + 0x200)
+    }
+}
+
 #[doc(hidden)]
 pub mod __private {
     use super::*;

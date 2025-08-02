@@ -12,6 +12,14 @@ pub(crate) unsafe fn write_hook(target: *mut u8, hook_fn: usize) {
         }
     }
 
+    // sets the thumb mode bit depending on if this stage was compiled in thumb mode
+    // if this is left unset, the CPU switches to ARM mode, which results in a data abort
+    let hook_fn = if cfg!(target_feature = "thumb-mode") {
+        hook_fn & 1
+    } else {
+        hook_fn & !1
+    };
+
     unsafe {
         (target as *mut [u16; 2]).write_unaligned(LDR_PC_PC);
         (target.offset(2) as *mut usize).write_unaligned(hook_fn);

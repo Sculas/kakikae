@@ -14,21 +14,49 @@ macro_rules! __do_match {
         let match_area = core::ptr::slice_from_raw_parts($base as _, $size);
         $crate::__private::paste! {$({
             $crate::__create_pattern!([<__pattern_ $func>] = $pat @ $align);
-            for match_addr in [<__pattern_ $func>].matches(&*match_area) {
-                let $match_addr = $base + match_addr;
-                let $match_addr = $crate::__do_match!(@mod match_addr; $($mod)?);
-                eprintln!(concat!("Found ", stringify!($func), " at 0x{:08X}"), match_addr);
+            for rel_match_addr in [<__pattern_ $func>].matches(&*match_area) {
+                let abs_match_addr = $crate::MatchAddress(($base + rel_match_addr) as u32);
+                let $match_addr = $crate::__do_match!(@mod abs_match_addr; $($mod)?);
+                eprintln!(concat!("Found ", stringify!($func), " at {}"), $match_addr);
                 $block
             }
         })*}
     }};
 
     (@mod $addr:ident; $modifier:expr) => {
-        $modifier($addr as _)
+        $modifier($addr)
     };
-
     (@mod $addr:ident; ) => {
         $addr
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __thumb {
+    ($addr:expr; ) => {
+        $addr
+    };
+    ($addr:expr; thumb) => {
+        $addr & 1
+    };
+}
+
+#[macro_export]
+macro_rules! pattern_patch {
+    ($patch_fn:ident; ($base:expr, $size:expr) $({
+        $pat:literal @ $align:literal $(= $mod:expr)?,
+        $patch:literal = $func:ident $(,)?
+    }),* $(,)?) => {
+        // const assert that all patterns are equal length
+        $(const _: [(); 0 - !{ const ASSERT: bool = $pat.len() == $patch.len(); ASSERT } as usize] = [];)*
+
+        pub unsafe fn $patch_fn() {
+            $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
+                let mut patch_addr = match_addr.0 as *mut u8;
+                $crate::__private::execute_patch!($patch, patch_addr);
+            } }),*)
+        }
     };
 }
 
@@ -36,7 +64,7 @@ macro_rules! __do_match {
 macro_rules! pattern_match {
     ($match_fn:ident; ($base:expr, $size:expr) $({
         $pat:literal @ $align:literal $(= $mod:expr)?,
-        $vis:vis $func:ident($($arg:ident: $argtype:ty),*) $(-> $rtype:ty)? $(= $variadic:tt)? $(,)?
+        $vis:vis $(!$tm:ident)? fn $func:ident($($arg:ident: $argtype:ty),*) $(-> $rtype:ty)? $(= $variadic:tt)? $(,)?
     }),* $(,)?) => {
         $crate::__private::paste! {
             $(
@@ -53,7 +81,8 @@ macro_rules! pattern_match {
 
             pub unsafe fn $match_fn() {
                 $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
-                    [<__addr_ $func>] = Some(core::mem::transmute(match_addr));
+                    let func_addr = $crate::__thumb!((match_addr.0); $($tm)?);
+                    [<__addr_ $func>] = Some(core::mem::transmute(func_addr));
                     break;
                 } }),*)
             }
@@ -65,12 +94,12 @@ macro_rules! pattern_match {
 macro_rules! install_hooks {
     ($install_fn:ident; ($base:expr, $size:expr) $({
         $pat:literal @ $align:literal $(= $mod:expr)?,
-        $func:ident(orig: _ $(, $($arg:ident: $argtype:ty),*)?) $(-> $rtype:ty)? $(,)?
+        $(!$tm:ident)? fn $func:ident(orig: _ $(, $($arg:ident: $argtype:ty),*)?) $(-> $rtype:ty)? $(,)?
     }),* $(,)?) => {
         $crate::__private::paste! {
             pub unsafe fn $install_fn() {
                 $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
-                    [<__install_ $func>](match_addr as _);
+                    [<__install_ $func>](match_addr);
                 } }),*)
             }
         }
@@ -111,7 +140,8 @@ macro_rules! install_hooks {
 
                 eprintln!(concat!("Calling original function of ", stringify!($func)));
                 $crate::__private::disable_hook(sus.original, sus.backup);
-                let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(sus.original);
+                let orig_func_addr = $crate::__thumb!((sus.original as u32); $($tm)?);
+                let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(orig_func_addr);
                 let result = original($($arg),*);
                 let _ = $crate::__private::enable_hook(sus.original, sus.hook);
                 result
@@ -119,8 +149,9 @@ macro_rules! install_hooks {
 
             // The function that will install the hook at the given address.
             #[doc(hidden)]
-            unsafe fn [<__install_ $func>](orig_addr: *mut u8) {
-                eprintln!(concat!("Installing ", stringify!($func), "hook at 0x{:08X}"), orig_addr as usize);
+            unsafe fn [<__install_ $func>](match_addr: $crate::MatchAddress) {
+                eprintln!(concat!("Installing ", stringify!($func), " at {}"), match_addr);
+                let orig_addr = match_addr.0 as *mut u8;
                 let backup = $crate::__private::enable_hook(orig_addr, [<__hook_ $func>] as _);
                 [<__hook_ctx_ $func>] = Some([<__hook_ctx_ty_ $func>] {
                     original: orig_addr,

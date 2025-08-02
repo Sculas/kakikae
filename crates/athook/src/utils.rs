@@ -1,5 +1,7 @@
-pub fn follow_bl_insn(match_addr: u32) -> u32 {
-    let instruction = unsafe { core::ptr::read_unaligned(match_addr as *const u32) };
+use crate::MatchAddress;
+
+pub fn follow_bl_insn(match_addr: MatchAddress) -> MatchAddress {
+    let instruction = unsafe { core::ptr::read_unaligned(match_addr.0 as *const u32) };
     let first_halfword = (instruction >> 16) & 0xFFFF;
     let second_halfword = instruction & 0xFFFF;
 
@@ -17,5 +19,5 @@ pub fn follow_bl_insn(match_addr: u32) -> u32 {
         imm32 |= 0xFF000000;
     }
 
-    (match_addr + 4).wrapping_add(imm32)
+    MatchAddress((match_addr.0 + 4).wrapping_add(imm32))
 }

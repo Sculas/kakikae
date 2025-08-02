@@ -14,4 +14,4 @@ doctest = false
 [dependencies]
 athook-macros = { path = "../athook-macros" }
 pastey = "*"
-patterns = "0.3.0"
+patterns = "0.3"
