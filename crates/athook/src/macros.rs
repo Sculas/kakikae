@@ -17,7 +17,7 @@ macro_rules! __do_match {
             for rel_match_addr in [<__pattern_ $func>].matches(&*match_area) {
                 let abs_match_addr = $crate::MatchAddress(($base + rel_match_addr) as u32);
                 let $match_addr = $crate::__do_match!(@mod abs_match_addr; $($mod)?);
-                eprintln!(concat!("Found ", stringify!($func), " at {}"), $match_addr);
+                eprintln!(concat!("Found ", stringify!($func), " at {} (abs = {})"), $match_addr, abs_match_addr);
                 $block
             }
         })*}
@@ -38,7 +38,7 @@ macro_rules! __thumb {
         $addr
     };
     ($addr:expr; thumb) => {
-        $addr & 1
+        $addr | 1
     };
 }
 
