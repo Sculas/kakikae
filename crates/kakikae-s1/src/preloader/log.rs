@@ -1,0 +1,27 @@
+use super::ffi;
+use core::{fmt::Write, mem::transmute};
+
+#[macro_export]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        $crate::preloader::log::pl_println(format_args!($($arg)*), module_path!(), line!())
+    };
+}
+
+const _: kakikae_shared::PL_PRINT = pl_println;
+
+#[doc(hidden)]
+pub fn pl_println(args: core::fmt::Arguments, module: &str, line: u32) {
+    let mut buffer = heapless::String::<256>::new();
+    let mut tm = ffi::RtcTime::default();
+    ffi::rtc_get_time(&mut tm);
+    write!(
+        &mut buffer,
+        "[{}/{:02}/{:02} {:02}:{:02}:{:02}][{module}:{line}] {args}\n\0",
+        tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec
+    )
+    .ok();
+
+    let printf: ffi::PrintfFn = unsafe { transmute(ffi::PRINTF_PTR) };
+    printf(buffer.as_ptr() as _);
+}

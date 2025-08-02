@@ -46,7 +46,8 @@ pub unsafe extern "C" fn main() -> ! {
     write_volatile(brom::ffi::DAA_PASSED_2, u32::MAX);
 
     brom::uart_println("Hooking PL -> LK jump...");
-    preloader::install_preloader_bldr_jump64_hook();
+    preloader::install_patches();
+    preloader::install_hooks();
 
     brom::uart_println("Jumping to PL, byebye!");
     core::arch::asm!("ldr pc, =(0x201000)");

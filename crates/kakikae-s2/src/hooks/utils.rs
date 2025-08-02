@@ -13,8 +13,3 @@ athook::pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
     "0F B4 ? ? F0 B5 9B B0" @ 1,
     pub !thumb fn dprintf(fmt: *const c_char) -> c_int = ...
 });
-
-athook::pattern_patch!(pattern_patch; (LK_BASE, LK_SIZE) {
-    "BA F1 01 0F 07 D1 DF F8 38 05" @ 1,
-    "?? ?? 00 ?? ?? ?? ?? ?? ?? ??" = enable_logging,
-});

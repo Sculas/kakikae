@@ -1,33 +1,18 @@
+use crate::eprintln;
 use core::{fmt::Write, mem::transmute};
 
 mod ffi;
+pub mod log;
 
-#[macro_export]
-macro_rules! eprintln {
-    ($($arg:tt)*) => {
-        $crate::preloader::pl_println(format_args!($($arg)*), module_path!(), line!())
-    };
-}
+const PL_BASE: usize = 0x201000;
+const PL_SIZE: usize = 0x050000;
 
-const _: kakikae_shared::PL_PRINT = pl_println;
+athook::pattern_patch!(install_patches; (PL_BASE, PL_SIZE) {
+    "BA F1 01 0F 07 D1 DF F8 38 05" @ 1,
+    "?? ?? 00 ?? ?? ?? ?? ?? ?? ??" = enable_logging,
+});
 
-#[doc(hidden)]
-pub fn pl_println(args: core::fmt::Arguments, module: &str, line: u32) {
-    let mut buffer = heapless::String::<256>::new();
-    let mut tm = ffi::RtcTime::default();
-    ffi::rtc_get_time(&mut tm);
-    write!(
-        &mut buffer,
-        "[{}/{:02}/{:02} {:02}:{:02}:{:02}][{module}:{line}] {args}\n\0",
-        tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec
-    )
-    .ok();
-
-    let printf: ffi::PrintfFn = unsafe { transmute(ffi::PRINTF_PTR) };
-    printf(buffer.as_ptr() as _);
-}
-
-pub unsafe fn install_preloader_bldr_jump64_hook() {
+pub unsafe fn install_hooks() {
     // 002229C0 LDR  R0, [SP,#0xD8+var_A8]
     // 002229C2 MOV  R1, R4
     // 002229C4 MOVW R2, #0x5920
@@ -63,6 +48,6 @@ unsafe fn initialize_and_jump_to_s2() {
     const S2_BIN: &[u8] = include_bytes!(concat!(env!("S2_BUILD_DIR"), "/kakikae-s2.bin"));
     core::ptr::copy_nonoverlapping(S2_BIN.as_ptr(), kakikae_shared::S2_BASE_ADDR, S2_BIN.len());
     eprintln!("Jumping to S2 (0x{:08X}, {} bytes)", kakikae_shared::S2_BASE_ADDR as usize, S2_BIN.len());
-    let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(kakikae_shared::S2_BASE_ADDR);
-    s2_entry_point(pl_println as _) // call the EP and pray that we survive
+    let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(kakikae_shared::S2_BASE_ADDR.add(1));
+    s2_entry_point(log::pl_println as _) // call the EP and pray that we survive
 }
