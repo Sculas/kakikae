@@ -17,7 +17,7 @@ macro_rules! __do_match {
             for match_addr in [<__pattern_ $func>].matches(&*match_area) {
                 let $match_addr = $base + match_addr;
                 let $match_addr = $crate::__do_match!(@mod match_addr; $($mod)?);
-                eprintln!(concat!("Found ", stringify!($func), " at 0x{:08X}"), match_addr);
+                eprintln!(concat!("Found ", stringify!($func), " at {:#010X}"), match_addr);
                 $block
             }
         })*}
@@ -43,7 +43,7 @@ macro_rules! pattern_match {
                 #[doc(hidden)]
                 static mut [<__addr_ $func>]: Option<extern "C" fn($($argtype),* $(, $variadic)?) $(-> $rtype)?> = None;
                 $vis unsafe fn $func($($arg: $argtype),*) $(-> $rtype)? {
-                    //lkprintln!(concat!("Attempting to call ", stringify!($func)));
+                    eprintln!(concat!("Attempting to call ", stringify!($func)));
                     match [<__addr_ $func>] {
                         Some(func) => func($($arg),*),
                         None => Default::default(),
@@ -122,7 +122,7 @@ macro_rules! install_hooks {
             #[doc(hidden)]
             unsafe fn [<__install_ $func>](orig_addr: *mut u8) {
                 let orig_addr = (($base as usize + orig_addr as usize) | 1 )as *mut u8;
-                eprintln!(concat!("Installing ", stringify!($func), "hook at 0x{:08X}"), orig_addr as usize);
+                eprintln!(concat!("Installing ", stringify!($func), "hook at {:#010X}"), orig_addr as usize);
                 let backup = $crate::__private::enable_hook(orig_addr, [<__hook_ $func>] as _);
                 [<__hook_ctx_ $func>] = Some([<__hook_ctx_ty_ $func>] {
                     original: orig_addr,

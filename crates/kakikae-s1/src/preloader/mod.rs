@@ -37,7 +37,7 @@ pub unsafe fn install_preloader_bldr_jump64_hook() {
 
 #[inline(never)]
 unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
-    eprintln!("Jumping from PL -> LK (0x{:08X})", addr);
+    eprintln!("Jumping from PL -> LK ({:#010X})", addr);
 
     // Force the boot reason to BR_POWER_KEY as indicated by MTK:
     // if (mtk_detect_key(PL_PMIC_PWR_KEY) && hw_check_battery()) {
@@ -54,7 +54,7 @@ unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
     initialize_and_jump_to_s2();
 
     // Continue the jump to Little Kernel (LK).
-    eprintln!("Jumping to LK (0x{:08X}, 0x{:08X})", arg1, arg2);
+    eprintln!("Jumping to LK ({:#010X}, {:#010X})", arg1, arg2);
     ffi::original_bldr_jump64(addr, arg1, arg2);
 }
 
@@ -62,7 +62,7 @@ unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
 unsafe fn initialize_and_jump_to_s2() {
     const S2_BIN: &[u8] = include_bytes!(concat!(env!("S2_BUILD_DIR"), "/kakikae-s2.bin"));
     core::ptr::copy_nonoverlapping(S2_BIN.as_ptr(), kakikae_shared::S2_BASE_ADDR as _, S2_BIN.len());
-    eprintln!("Jumping to S2 (0x{:08X}, {} bytes)", kakikae_shared::S2_BASE_ADDR, S2_BIN.len());
+    eprintln!("Jumping to S2 ({:#010X}, {} bytes)", kakikae_shared::S2_BASE_ADDR, S2_BIN.len());
     let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(kakikae_shared::S2_BASE_ADDR | 1);
     s2_entry_point(pl_println as _) // call the entry point and pray that we survive
 }

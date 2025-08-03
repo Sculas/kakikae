@@ -15,4 +15,3 @@ doctest = false
 athook-macros = { path = "../athook-macros" }
 pastey = "*"
 patterns = "0.3.0"
-hex = { version = "0.4", default-features = false }
