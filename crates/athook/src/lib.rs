@@ -46,6 +46,7 @@ pub mod __private {
     pub use patterns::*;
 
     pub unsafe fn enable_hook(orig_fn: *mut u8, hook_fn: *const u8) -> [u8; BACKUP_LEN] {
+        let orig_fn = (orig_fn as usize & !1) as *mut u8;
         let backup = orig_fn.cast::<[u8; BACKUP_LEN]>().read_unaligned();
         raw::write_hook(orig_fn, hook_fn as usize);
         raw::clear_cache_and_flush(orig_fn, orig_fn.add(BACKUP_LEN));
@@ -54,6 +55,7 @@ pub mod __private {
 
     #[rustfmt::skip]
     pub unsafe fn disable_hook(orig_fn: *mut u8, orig_code: [u8; BACKUP_LEN]) {
+        let orig_fn = (orig_fn as usize & !1) as *mut u8;
         orig_fn.cast::<[u8; BACKUP_LEN]>().write_unaligned(orig_code);
         raw::clear_cache_and_flush(orig_fn, orig_fn.add(BACKUP_LEN));
     }

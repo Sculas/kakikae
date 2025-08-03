@@ -10,13 +10,15 @@
     clippy::missing_safety_doc
 )]
 
+use crate::log::lk_println;
+
 mod hooks;
 mod log;
 
 #[inline(never)]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    eprintln!("FATAL: an unrecoverable error has occurred: {}", info);
+    lk_println(format_args!("FATAL: an unrecoverable error has occurred: {}", info), module_path!(), line!());
     loop {}
 }
 

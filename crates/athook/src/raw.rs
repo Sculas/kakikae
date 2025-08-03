@@ -2,7 +2,7 @@ pub const BACKUP_LEN: usize = 9; // code len (4) + pointer length (4) + align(1)
 
 pub(crate) unsafe fn write_hook(target: *mut u8, hook_fn: usize) {
     const THUMB_NOP: u16 = 0xbf00; // asm: nop
-    const LDR_PC_PC: [u16; 2] = [0xf8df, 0xf000]; // asm: ldr.w pc, [pc]
+    const LDR_PC_PC: [u16; 2] = [0x4e00, 0x4730]; // asm: ldr.w pc, [pc]
 
     let mut target = target as *mut u16;
     if target as u32 % 4 != 0 {
