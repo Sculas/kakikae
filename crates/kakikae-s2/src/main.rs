@@ -10,13 +10,15 @@
     clippy::missing_safety_doc
 )]
 
+use crate::log::lk_println;
+
 mod hooks;
 mod log;
 
 #[inline(never)]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    eprintln!("FATAL: an unrecoverable error has occurred: {}", info);
+    lk_println(format_args!("FATAL: an unrecoverable error has occurred: {}", info), module_path!(), line!());
     loop {}
 }
 
@@ -31,8 +33,8 @@ pub unsafe extern "C" fn start() {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn main(pl_print_ptr: usize, in_pl_phase: *const bool) {
-    log::init(pl_print_ptr, in_pl_phase);
+pub unsafe extern "C" fn main(pl_print_ptr: usize) {
+    log::init(pl_print_ptr);
     eprintln!("kakikae / stage 2 (LK, using 0x{:08X})", pl_print_ptr);
 
     eprintln!("Installing LK hooks");

@@ -49,6 +49,7 @@ pub unsafe extern "C" fn main() -> ! {
     preloader::install_preloader_bldr_jump64_hook();
 
     brom::uart_println("Jumping to PL, byebye!");
+    core::arch::asm!("mov r4, 0x0", "mov r6, 0x0");
     core::arch::asm!("ldr pc, =(0x201000)");
     core::hint::unreachable_unchecked();
 }
