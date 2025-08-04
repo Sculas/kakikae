@@ -4,7 +4,7 @@ use athook::follow_bl_insn;
 use core::ffi::*;
 
 athook::pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
-    "? ? ? FF 22 68" @ 1 = follow_bl_insn,
+    "? ? ? BE 0A 23" @ 1 = follow_bl_insn,
     pub mdelay(n: c_ulong)
 }, {
     "10 B5 04 46 ? ? ? FF A0 42" @ 1,
