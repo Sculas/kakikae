@@ -70,6 +70,7 @@ unsafe fn initialize_and_jump_to_s2() {
     const S2_BIN: &[u8] = include_bytes!(concat!(env!("S2_BUILD_DIR"), "/kakikae-s2.bin"));
     core::ptr::copy_nonoverlapping(S2_BIN.as_ptr(), kakikae_shared::S2_BASE_ADDR, S2_BIN.len());
     eprintln!("Jumping to S2 (0x{:08X}, {} bytes)", kakikae_shared::S2_BASE_ADDR as usize, S2_BIN.len());
-    let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(kakikae_shared::S2_BASE_ADDR);
-    s2_entry_point(pl_println as _, &raw const IN_PL_PHASE) // call the EP and pray that we survive
+    let thumb_base_addr = kakikae_shared::S2_BASE_ADDR as usize | 1;
+    let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(thumb_base_addr);
+    s2_entry_point(pl_println as _) // call the EP and pray that we survive
 }
