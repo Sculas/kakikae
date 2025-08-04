@@ -4,7 +4,7 @@ use core::mem::transmute;
 mod ffi;
 pub mod log;
 
-pub unsafe fn install_preloader_bldr_jump64_hook() {
+pub unsafe fn install_hooks() {
     // 002229C0 LDR  R0, [SP,#0xD8+var_A8]
     // 002229C2 MOV  R1, R4
     // 002229C4 MOVW R2, #0x5920

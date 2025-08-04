@@ -4,21 +4,21 @@ use core::ffi::*;
 
 athook::pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
     "? ? ? ? ? ? ? 02 13 68 ? ? ? 03 ? ? ? 53" @ 1,
-    !thumb fn mtk_wdt_disable()
+    mtk_wdt_disable()
 }, {
     "10 B5 ? ? ? FA 04 46" @ 1,
-    !thumb fn mt65xx_backlight_on()
+    mt65xx_backlight_on()
 }, {
     "2D E9 F8 43 ? ? ? ? ? ? ? 09" @ 1,
-    !thumb fn mtk_wdt_init()
+    mtk_wdt_init()
 }, {
     "38 B5 04 46 ? ? ? FF" @ 1,
-    !thumb fn mtk_detect_key(key: c_ushort) -> c_int
+    mtk_detect_key(key: c_ushort) -> c_int
 });
 
 athook::install_hooks!(install_hooks; (LK_BASE, LK_SIZE) {
     "70 B5 61 4C" @ 1,
-    !thumb fn boot_mode_select_hook(orig: _),
+    boot_mode_select_hook(orig: _),
 });
 
 const MT65XX_BOOT_MENU_KEY: c_ushort = 0; // VOL_UP key

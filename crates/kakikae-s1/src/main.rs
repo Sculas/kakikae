@@ -46,7 +46,6 @@ pub unsafe extern "C" fn main() -> ! {
     write_volatile(brom::ffi::DAA_PASSED_2, u32::MAX);
 
     brom::uart_println("Hooking PL -> LK jump...");
-    preloader::install_patches();
     preloader::install_hooks();
 
     brom::uart_println("Jumping to PL, byebye!");
