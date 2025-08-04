@@ -2,7 +2,7 @@ use super::ffi;
 use core::{fmt::Write, mem::transmute};
 
 #[macro_export]
-macro_rules! eprintln {
+macro_rules! pl_println {
     ($($arg:tt)*) => {
         $crate::preloader::log::pl_println(format_args!($($arg)*), module_path!(), line!())
     };
@@ -22,6 +22,6 @@ pub fn pl_println(args: core::fmt::Arguments, module: &str, line: u32) {
     )
     .ok();
 
-    let printf: ffi::PrintfFn = unsafe { transmute(ffi::PRINTF_PTR) };
+    let printf: ffi::PrintfFn = unsafe { transmute(ffi::PRINTF_PTR as usize) };
     printf(buffer.as_ptr() as _);
 }

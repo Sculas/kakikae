@@ -17,7 +17,7 @@ mod preloader;
 #[inline(never)]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    eprintln!("FATAL: an unrecoverable error has occurred: {}", info);
+    pl_println!("FATAL: an unrecoverable error has occurred: {}", info);
     loop {}
 }
 

@@ -16,7 +16,11 @@ mod log;
 #[inline(never)]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    eprintln!("FATAL: an unrecoverable error has occurred: {}", info);
+    if unsafe { log::in_pl_phase() } {
+        pl_println!("FATAL: an unrecoverable error has occurred during PL phase: {}", info);
+    } else {
+        lk_println!("FATAL: an unrecoverable error has occurred during LK phase: {}", info);
+    }
     loop {}
 }
 
@@ -33,11 +37,11 @@ pub unsafe extern "C" fn start() {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main(pl_print_ptr: usize) {
     log::init(pl_print_ptr);
-    eprintln!("kakikae / stage 2 (LK, using {:#010X})", pl_print_ptr);
+    pl_println!("kakikae / stage 2 (LK, using {:#010X})", pl_print_ptr);
 
-    eprintln!("Installing LK hooks");
+    pl_println!("Installing LK hooks");
     hooks::install();
 
-    eprintln!("Stage 2 initialization complete!");
+    pl_println!("Stage 2 initialization complete!");
     log::switch_to_lk();
 }

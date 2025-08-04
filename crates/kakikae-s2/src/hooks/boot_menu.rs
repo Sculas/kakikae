@@ -25,7 +25,7 @@ const MT65XX_BOOT_MENU_KEY: c_ushort = 0; // VOL_UP key
 const MT65XX_MENU_OK_KEY: c_ushort = 1; // VOL_DOWN key
 
 unsafe fn boot_mode_select_hook(orig: orig_boot_mode_select_hook) {
-    eprintln!("LK: boot_mode_select_hook");
+    lk_println!("LK: boot_mode_select_hook");
     video_println!("hello from LK boot menu hook!");
 
     let begin = get_timer(0);
