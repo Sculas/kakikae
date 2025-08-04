@@ -111,11 +111,19 @@ macro_rules! install_hooks {
                 };
 
                 eprintln!(concat!("Calling original function of ", stringify!($func)));
+                eprintln!("orig addr = {:#010X}", sus.original as usize);
+
                 $crate::__private::disable_hook(sus.original, sus.backup);
                 let orig_addr = sus.original as usize | 1; // set thumb mode bit
+                eprintln!("calling addr = {:#010X}", orig_addr);
+
                 let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(orig_addr);
                 let result = original($($arg),*);
+                eprintln!("CALL OK result = {:?}", result);
+
+                eprintln!("enabling hook again = {:#010X}", sus.original as usize);
                 let _ = $crate::__private::enable_hook(sus.original, sus.hook);
+
                 result
             }
 

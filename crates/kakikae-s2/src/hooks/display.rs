@@ -30,6 +30,6 @@ macro_rules! video_println {
 #[doc(hidden)]
 pub fn video_println(args: core::fmt::Arguments, module: &str, line: u32) {
     let mut buffer = heapless::String::<256>::new();
-    write!(&mut buffer, "[{module}:{line}] {args}\n\0",).ok();
+    write!(&mut buffer, "[{module}:{line}] {args}\n\0").ok();
     unsafe { video_puts(buffer.as_ptr() as _) };
 }
