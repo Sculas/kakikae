@@ -7,6 +7,10 @@ pub unsafe fn init(pl_print_ptr: usize) {
     PL_PRINT = Some(transmute(pl_print_ptr));
 }
 
+pub unsafe fn switch_to_lk() {
+    PL_PRINT = None;
+}
+
 #[macro_export]
 macro_rules! eprintln {
     ($($arg:tt)*) => {unsafe {
