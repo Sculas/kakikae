@@ -1,6 +1,6 @@
 use super::{LK_BASE, LK_SIZE};
 use crate::*;
-use super::follow_bl_insn;
+use athook::follow_bl_insn;
 use core::{ffi::*, fmt::Write};
 
 athook::pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
