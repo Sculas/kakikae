@@ -14,10 +14,10 @@ macro_rules! __do_match {
         let match_area = core::ptr::slice_from_raw_parts($base as _, $size);
         $crate::__private::paste! {$({
             $crate::__create_pattern!([<__pattern_ $func>] = $pat @ $align);
-            for match_addr in [<__pattern_ $func>].matches(&*match_area) {
-                let $match_addr = $base + match_addr;
-                let $match_addr = $crate::__do_match!(@mod match_addr; $($mod)?);
-                eprintln!(concat!("Found ", stringify!($func), " at {:#010X}"), match_addr);
+            for rel_match_addr in [<__pattern_ $func>].matches(&*match_area) {
+                let abs_match_addr = $base + rel_match_addr;
+                let $match_addr = $crate::__do_match!(@mod abs_match_addr; $($mod)?);
+                eprintln!(concat!("Found ", stringify!($func), " at {:#010X}"), $match_addr);
                 $block
             }
         })*}
@@ -53,7 +53,7 @@ macro_rules! pattern_match {
 
             pub unsafe fn $match_fn() {
                 $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
-                    [<__addr_ $func>] = Some(core::mem::transmute((match_addr as usize + $base) | 1));
+                    [<__addr_ $func>] = Some(core::mem::transmute(match_addr | 1));
                     break;
                 } }),*)
             }
@@ -71,7 +71,7 @@ macro_rules! install_hooks {
         $crate::__private::paste! {
             pub unsafe fn $install_fn() {
                 $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
-                    [<__install_ $func>](match_addr as _);
+                    [<__install_ $func>](match_addr);
                 } }),*)
             }
         }
@@ -112,7 +112,8 @@ macro_rules! install_hooks {
 
                 eprintln!(concat!("Calling original function of ", stringify!($func)));
                 $crate::__private::disable_hook(sus.original, sus.backup);
-                let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(sus.original);
+                let orig_addr = sus.original as usize | 1; // set thumb mode bit
+                let original: extern "C" fn($($($arg: $argtype),*)?) $(-> $rtype)? = core::mem::transmute(orig_addr);
                 let result = original($($arg),*);
                 let _ = $crate::__private::enable_hook(sus.original, sus.hook);
                 result
@@ -120,12 +121,11 @@ macro_rules! install_hooks {
 
             // The function that will install the hook at the given address.
             #[doc(hidden)]
-            unsafe fn [<__install_ $func>](orig_addr: *mut u8) {
-                let orig_addr = (($base as usize + orig_addr as usize) | 1) as *mut u8;
-                eprintln!(concat!("Installing ", stringify!($func), " at {:#010X}"), orig_addr as usize);
-                let backup = $crate::__private::enable_hook(orig_addr, [<__hook_ $func>] as _);
+            unsafe fn [<__install_ $func>](orig_addr: usize) {
+                eprintln!(concat!("Installing ", stringify!($func), " at {:#010X}"), orig_addr);
+                let backup = $crate::__private::enable_hook(orig_addr as _, [<__hook_ $func>] as _);
                 [<__hook_ctx_ $func>] = Some([<__hook_ctx_ty_ $func>] {
-                    original: orig_addr,
+                    original: orig_addr as _,
                     hook: [<__hook_ $func>] as _,
                     backup,
                 });
