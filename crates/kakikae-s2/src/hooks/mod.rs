@@ -1,5 +1,5 @@
-mod boot_menu;
-mod display;
+pub(crate) mod boot_menu;
+pub(crate) mod display;
 pub(crate) mod utils;
 
 pub const LK_BASE: usize = 0x4C400000;
@@ -10,4 +10,6 @@ pub unsafe fn install() {
     display::pattern_match();
     boot_menu::pattern_match();
     boot_menu::install_hooks();
+    boot_menu::install_logo_hooks();
 }
+
