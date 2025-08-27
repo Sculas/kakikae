@@ -1,0 +1,19 @@
+[package]
+name = "kakikae-s0"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "kakikae-s0"
+test = false
+bench = false
+doctest = false
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+strip = true
+lto = true
+
+[dependencies]
+kakikae-shared = { path = "../kakikae-shared" }

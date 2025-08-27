@@ -37,7 +37,7 @@ unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
 
 #[rustfmt::skip]
 unsafe fn initialize_and_jump_to_s2() {
-    const S2_BIN: &[u8] = include_bytes!(concat!(env!("S2_BUILD_DIR"), "/kakikae-s2.bin"));
+    const S2_BIN: &[u8] = include_bytes!(concat!(env!("STAGE_BUILD_DIR"), "/kakikae-s2.bin"));
     core::ptr::copy_nonoverlapping(S2_BIN.as_ptr(), kakikae_shared::S2_BASE_ADDR as _, S2_BIN.len());
     pl_println!("Jumping to S2 ({:#010X}, {} bytes)", kakikae_shared::S2_BASE_ADDR, S2_BIN.len());
     let s2_entry_point: kakikae_shared::S2_ENTRY_POINT = transmute(kakikae_shared::S2_BASE_ADDR | 1);

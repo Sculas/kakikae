@@ -1,2 +1,4 @@
+[env]
+STAGE_BUILD_DIR = { value = "./build", relative = true }
 [alias]
 xtask = "run --package xtask --"
