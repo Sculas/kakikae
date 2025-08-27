@@ -3,11 +3,12 @@ use std::io::{ErrorKind, Read};
 use crate::error::KakikaeError;
 
 pub fn read_stage_data(path: &str) -> Result<Vec<u8>, KakikaeError> {
-    let stage_data_result = File::open(concat!(env!("STAGE_BUILD_DIR"), path));
+    let full_path = env!("STAGE_BUILD_DIR").to_string() + path;
+    let stage_data_result = File::open(&full_path);
     match stage_data_result {
         Ok(mut f) => {
             let mut buffer = vec![0; f.metadata()?.len() as usize];
-            f.read(&mut buffer)?;
+            f.read_exact(&mut buffer)?;
             Ok(buffer)
         }
         Err(e) => {
