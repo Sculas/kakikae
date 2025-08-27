@@ -8,5 +8,8 @@ def_extern! { vars;
 def_extern! { fns;
     usbdl_get_dword    @ 0xE183 -> fn(n: *mut u32),
     usbdl_put_dword    @ 0xE1B7 -> fn(n: u32),
+    usbdl_get_data     @ 0xE1F9 -> fn(n: *mut u32, sz: u32),
+    usbdl_put_data     @ 0xE287 -> fn(n: *const u32, sz: u32),
     send_usb_response  @ 0x4C8F -> fn(arg1: u32, arg2: u32, arg3: u32),
+    cmd_handler        @ 0xF029 -> fn(),
 }
