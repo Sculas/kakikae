@@ -78,7 +78,7 @@ macro_rules! install_hooks {
 
         $($crate::__private::paste! {
             // Ensure the hook function has the expected signature.
-            const _: unsafe fn(orig: [<orig_ $func>] $(, $($arg: $argtype),*)?) $(-> $rtype:ty)? = $func;
+            const _: unsafe fn(orig: [<orig_ $func>] $(, $($arg: $argtype),*)?) $(-> $rtype)? = $func;
 
             // A no_std reimplementation of bhook::hook_fn!() macro.
             #[doc(hidden)]
@@ -96,7 +96,7 @@ macro_rules! install_hooks {
             // The intermediate hook function that will be called by the original function.
             #[doc(hidden)]
             #[inline(never)]
-            unsafe extern "C" fn [<__hook_ $func>]($($($arg: $argtype),*)?) $(-> $rtype:ty)? {
+            unsafe extern "C" fn [<__hook_ $func>]($($($arg: $argtype),*)?) $(-> $rtype)? {
                 lk_println!(concat!("Hook ", stringify!($func), "was called!"));
                 $func([<__original_ $func>] $(, $($arg),*)?)
             }
@@ -104,7 +104,7 @@ macro_rules! install_hooks {
             // The intermediate function that will call the original function.
             #[doc(hidden)]
             #[inline(never)]
-            unsafe fn [<__original_ $func>]($($($arg: $argtype),*)?) $(-> $rtype:ty)? {
+            unsafe fn [<__original_ $func>]($($($arg: $argtype),*)?) $(-> $rtype)? {
                 #[allow(static_mut_refs)] // this is fine...
                 let Some(sus) = [<__hook_ctx_ $func>].as_ref() else {
                     panic!("FATAL: missing hook context for {}", stringify!($func));
@@ -147,6 +147,16 @@ macro_rules! install_hooks {
                     hook: [<__hook_ $func>] as _,
                     backup,
                 });
+            }
+                        // The function that will install the hook at the given address.
+            #[doc(hidden)]
+            unsafe fn [<__uninstall_ $func>]() {
+                let Some(sus) = [<__hook_ctx_ $func>].as_ref() else {
+                    panic!("FATAL: missing hook context for {}", stringify!($func));
+                };
+
+                lk_println!("disabling hook = {:#010X}, {:#010X} = {:?}", sus.original as usize, sus.backup.as_ptr() as usize, sus.backup);
+                $crate::__private::disable_hook(sus.original, sus.backup);
             }
         })*
     };
