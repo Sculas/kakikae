@@ -130,6 +130,7 @@ dependencies = [
 name = "kakikae-cli"
 version = "0.1.0"
 dependencies = [
+ "kakikae-shared",
  "nusb",
  "thiserror",
  "tokio",
