@@ -14,3 +14,4 @@ doctest = false
 nusb = { version = "0.2.0", features = ["tokio"] }
 tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "time"] }
 thiserror = "2.0.16"
+kakikae-shared = { path = "../kakikae-shared" }

@@ -18,8 +18,8 @@ pub enum KakikaeError {
     HandshakeTimeout,
     #[error("This utility only supports MT6785 at the moment.")]
     UnsupportedDevice,
-    #[error("coudlnt")]
-    StageDataNotFound,
+    #[error("Failed to find stage file: '{0}', Did you follow the steps correctly?")]
+    StageDataNotFound(String),
 }
 impl Debug for KakikaeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

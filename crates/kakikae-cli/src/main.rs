@@ -1,6 +1,8 @@
 #![feature(int_roundings)]
 
 mod error;
+mod utils;
+mod kamakiri2;
 
 use std::fs::File;
 use nusb::io::{EndpointRead, EndpointWrite};
@@ -11,6 +13,7 @@ use std::process::exit;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use crate::error::KakikaeError;
+use crate::kamakiri2::Kamakiri2;
 
 const SHORT_TIMEOUT: Duration = Duration::from_millis(5);
 const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
@@ -42,60 +45,27 @@ async fn main() -> Result<(), KakikaeError> {
         return Err(KakikaeError::UnsupportedDevice)
     }
 
-    let stage0_data_result = File::open(concat!(env!("STAGE_BUILD_DIR"), "/kakikae-s0.bin"));
-    match stage0_data_result {
-        Ok(f) => f
-        Err(e) => {
-            match e.kind() {
-                IoErrorKind::NotFound => {
-                    KakikaeError::
-                }
-                _ => {
-                    return Err(KakikaeError::Io(e))
-                }
-            }
-        }
-    }
+    let stage0 = utils::read_stage_data("/kakikae-s0.bin")?;
     println!("Attempting to load stage 0 via kamakiri2...");
 
     let mut kamakiri2 = Kamakiri2::new(&mut usb_device, &mut dev_ep);
-    kamakiri2.send_da(stage0).await?;
-    sleep(SHORT_TIMEOUT).await;
+    kamakiri2.send_da(&stage0).await?;
 
-    let stage0_result = stage_cmd(&mut dev_ep, 0x48454C4F, true).await; // DA handshake
-    println!("Stage 0 DA Handshake...");
-    match stage0_result {
-        Ok(_) => println!("Stage 0 responded correctly."),
-        Err(e) => {
-            println!("Stage 0 failed to load: {e}");
-            exit(1)
-        }
-    }
+    stage_cmd(&mut dev_ep, 0x48454C4F, true).await?; // handshake
 
-    let stage1 = include_bytes!(concat!(env!("STAGE_BUILD_DIR"), "/kakikae-s1.bin"));
+    let stage1 = utils::read_stage_data("/kakikae-s1.bin")?;
     println!("Sending Stage 1...");
-    stage_write_data(&mut dev_ep, stage1, 0x250000).await?;
-    sleep(DEFAULT_TIMEOUT).await;
-    println!("Stage 1 DA Handshake...");
-    let stage1_result = stage_cmd(&mut dev_ep, 0x48454C4F, true).await; // DA handshake
-    match stage1_result {
-        Ok(_) => println!("Stage 1 responded correctly."),
-        Err(e) => {
-            println!("Stage 1 failed to load: {e}");
-            exit(1)
-        }
-    }
-    let stage0_result = stage_cmd(&mut dev_ep, 0x434f4d44, true).await; // COMD command
+    stage_write_data(&mut dev_ep, &stage1, kakikae_shared::S1_BASE_ADDR as u32).await?;
+
+    println!("Stage 1 Handshake...");
+    stage_cmd(&mut dev_ep, 0x48454C4F, true).await?; // Handshake
+
     println!("Switching to BROM cmd handler...");
-    match stage0_result {
-        Ok(_) => println!("Stage 1 recognized command."),
-        Err(e) => {
-            println!("Command failed: {e}");
-            exit(1)
-        }
-    }
+    stage_cmd(&mut dev_ep, 0x434f4d44, true).await?; // COMD command
+
     println!("Booting...");
     cmd_boot_pl(&mut dev_ep).await?;
+
     println!("Device should start booting in a bit.");
 
     Ok(())
@@ -313,6 +283,7 @@ async fn status_check(ep: &mut DeviceEndpoint) -> Result<u16, KakikaeError> {
         Ok(result)
     }
 }
+#[allow(unused_must_use)]
 async fn stage_cmd(ep: &mut DeviceEndpoint, data: u32, await_result: bool) -> Result<(), KakikaeError> {
     // todo: try to fix this
     // WORKAROUND: attempt to flush the input to clear any garbage data
@@ -354,116 +325,4 @@ async fn stage_write_data(
         ep.ep_out.flush()?;
     }
     Ok(())
-}
-struct Kamakiri2<'a> {
-    device: &'a mut Device,
-    ep: &'a mut DeviceEndpoint,
-    linecode: Vec<u8>
-}
-impl<'a> Kamakiri2<'a> {
-    pub fn new(device: &'a mut Device, ep: &'a mut DeviceEndpoint) -> Self {
-        Self {
-            device,
-            ep,
-            linecode: vec![],
-        }
-    }
-    async fn send_da(
-        &mut self,
-        payload: &[u8]
-    ) -> Result<(), KakikaeError> {
-        self.linecode = self.device.control_in(ControlIn {
-            control_type: ControlType::Class,
-            recipient: Recipient::Interface,
-            request: 0x21,
-            value: 0,
-            index: 0x0,
-            length: 7
-        }, DEFAULT_TIMEOUT).await?;
-        self.linecode.push(0);
-        let ptr_send_result = self.read_da(0xe2a4, 4,true).await?;
-        let ptr_send_bytes: [u8; 4] = ptr_send_result.try_into()
-            .map_err(|v| KakikaeError::IntConvertFail(v))?;
-        let ptr_send = u32::from_le_bytes(ptr_send_bytes) + 8;
-        self.write_da(PAYLOAD_ADDRESS, payload.len() as u32, payload, true).await?;
-        self.write_da(ptr_send, 4, &PAYLOAD_ADDRESS.to_le_bytes(), false).await?;
-        Ok(())
-    }
-    async fn read_da(
-        &mut self,
-        address: u32,
-        length: u32,
-        check_status: bool
-    ) -> Result<Vec<u8>, KakikaeError> {
-        self.read_write_da(0, address, length, Default::default(), check_status).await
-    }
-    async fn write_da(
-        &mut self,
-        address: u32,
-        length: u32,
-        data: &[u8],
-        check_status: bool
-    ) -> Result<(), KakikaeError> {
-        self.read_write_da(1, address, length, data, check_status).await?;
-        Ok(())
-    }
-    #[allow(unused_must_use)]
-    async fn read_write_da(
-        &mut self,
-        direction: u32,
-        address: u32,
-        length: u32,
-        data: &[u8],
-        check_status: bool
-    )  -> Result<Vec<u8>, KakikaeError>{
-        match cmd_register_access(self.ep, 0, 0, 1, vec![], true).await {
-            Ok(_) => {
-                cmd_read_32(self.ep, WATCHDOG_PTR + 0x50, 1).await;
-            },
-            _ => {}
-        }; // These are failable
-
-        for i in 0..3 {
-            let bytes = &(0xe764_u32 + 8 - 3 + i).to_le_bytes();
-            self.ctrl_transfer(bytes).await;
-        }
-        if address < 0x40 {
-            for i in 0..4 {
-                let bytes = &(0xe764_u32 - 6 + (4 - i)).to_le_bytes();
-                &self.ctrl_transfer(bytes).await;
-            }
-            cmd_register_access(self.ep, direction, address, length, data.to_vec(), check_status).await
-        } else {
-            for i in 0..3 {
-                let bytes = &(0xe764_u32 - 5 + (3 - i)).to_le_bytes();
-                self.ctrl_transfer(bytes).await;
-            }
-            cmd_register_access(self.ep, direction, address - 0x40, length, data.to_vec(), check_status).await
-        }
-    }
-
-    async fn ctrl_transfer(
-        &mut self,
-        bytes: &[u8],
-    ) -> Result<(), KakikaeError> {
-        let mut out_data = self.linecode.clone();
-        out_data.extend_from_slice(bytes);
-        self.device.control_out(ControlOut {
-            control_type: ControlType::Class,
-            recipient: Recipient::Interface,
-            request: 0x20,
-            value: 0,
-            index: 0,
-            data: &out_data
-        }, DEFAULT_TIMEOUT).await?;
-        self.device.control_in(ControlIn {
-            control_type: ControlType::Standard,
-            recipient: Recipient::Device,
-            request: 0x6,
-            value: 0x0200,
-            index: 0,
-            length: 9,
-        }, DEFAULT_TIMEOUT).await?;
-        Ok(())
-    }
 }
