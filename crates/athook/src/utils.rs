@@ -1,9 +1,10 @@
 use core::ptr::read_unaligned;
 
 pub unsafe fn follow_bl_insn(match_addr: u32) -> u32 {
-    let instruction = read_unaligned(match_addr as *const u32);
-    let first_halfword = (instruction >> 16) & 0xFFFF;
-    let second_halfword = instruction & 0xFFFF;
+    let insn_addr = match_addr as *const u16;
+
+    let first_halfword = read_unaligned(insn_addr) as u32;
+    let second_halfword = read_unaligned(insn_addr.offset(1)) as u32;
 
     let s = (first_halfword >> 10) & 1;
     let imm10 = first_halfword & 0x3FF;
