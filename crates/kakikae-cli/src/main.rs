@@ -4,12 +4,9 @@ mod error;
 mod utils;
 mod kamakiri2;
 
-use std::fs::File;
 use nusb::io::{EndpointRead, EndpointWrite};
-use nusb::transfer::{ControlIn, ControlOut, ControlType, Recipient};
-use nusb::{Device, Error, ErrorKind as UsbErrorKind};
-use std::io::{stdout, Read, Write, ErrorKind as IoErrorKind};
-use std::process::exit;
+use nusb::{Device};
+use std::io::{stdout, Read, Write};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use crate::error::KakikaeError;
@@ -310,11 +307,9 @@ async fn stage_write_data(
     stage_cmd(ep, location, true).await?;
     stage_cmd(ep, data.len() as u32, true).await?;
     let (chunks, remainder) = data.as_chunks::<64>();
-    let mut pos = 0;
     for chunk in chunks {
         ep.ep_out.write(chunk)?;
         ep.ep_out.flush()?;
-        pos += 64;
         sleep(SHORT_TIMEOUT).await;
     }
     // write remainder as a full chunk
