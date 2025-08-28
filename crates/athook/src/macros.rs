@@ -17,7 +17,7 @@ macro_rules! __do_match {
             for rel_match_addr in [<__pattern_ $func>].matches(&*match_area) {
                 let abs_match_addr = $base + rel_match_addr;
                 let $match_addr = $crate::__do_match!(@mod abs_match_addr; $($mod)?);
-                pl_println!(concat!("Found ", stringify!($func), " at {:#010X}"), $match_addr);
+                //pl_println!(concat!("Found ", stringify!($func), " at {:#010X}"), $match_addr); // todo: fix log for brom
                 $block
             }
         })*}
@@ -57,6 +57,24 @@ macro_rules! pattern_match {
                     break;
                 } }),*)
             }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pattern_patch {
+    ($patch_fn:ident; ($base:expr, $size:expr) $({
+        $pat:literal @ $align:literal $(= $mod:expr)?,
+        $patch:literal = $func:ident $(,)?
+    }),* $(,)?) => {
+        // const assert that all patterns are equal length
+        $(const _: [(); 0 - !{ const ASSERT: bool = $pat.len() == $patch.len(); ASSERT } as usize] = [];)*
+
+        pub unsafe fn $patch_fn() {
+            $crate::__do_match!(($base, $size) $({ $pat, $align, $($mod)?, $func, match_addr, {
+                let mut patch_addr = match_addr as *mut u8;
+                $crate::__private::execute_patch!($patch, patch_addr);
+            } }),*)
         }
     };
 }
@@ -125,7 +143,8 @@ macro_rules! install_hooks {
 
                 lk_println!("calling original = {:#010X}", orig_addr);
 
-                let result = original($($arg),*);
+
+                let result = original($($($arg),*)?);
 
                 lk_println!("ORIG CALL OK result = {:?}", result);
 
@@ -140,7 +159,7 @@ macro_rules! install_hooks {
             // The function that will install the hook at the given address.
             #[doc(hidden)]
             unsafe fn [<__install_ $func>](orig_addr: usize) {
-                pl_println!(concat!("Installing ", stringify!($func), " at {:#010X}"), orig_addr);
+                //pl_println!(concat!("Installing ", stringify!($func), " at {:#010X}"), orig_addr);
                 let backup = $crate::__private::enable_hook(orig_addr as _, [<__hook_ $func>] as _);
                 [<__hook_ctx_ $func>] = Some([<__hook_ctx_ty_ $func>] {
                     original: orig_addr as _,

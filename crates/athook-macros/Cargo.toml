@@ -11,3 +11,5 @@ proc-macro = true
 [dependencies]
 syn = "2.0"
 quote = "1"
+hex = "0.4.3"
+derive-syn-parse = "0.2.0"

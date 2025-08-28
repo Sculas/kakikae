@@ -10,7 +10,7 @@
 )]
 
 use core::ops::Div;
-use core::ptr::write_volatile;
+use core::ptr::{null_mut, write_volatile};
 use crate::brom::ffi::{usbdl_get_data, usbdl_put_data};
 
 mod brom;
@@ -42,15 +42,6 @@ pub unsafe extern "C" fn main() -> ! {
     loop {
         get_dword(&mut echo);
         match echo {
-            0x424f4f54 => { // BOOT
-                put_dword(echo);
-                brom::uart_println("Hooking PL -> LK jump...");
-                preloader::install_hooks();
-                brom::uart_println("Jumping to PL, byebye!");
-                core::arch::asm!("mov r0, 0x0","mov r1, 0x0","mov r2, 0x0","mov r3, 0x0","mov r4, 0x0","mov r5, 0x0","mov r6, 0x0");
-                core::arch::asm!("ldr pc, =(0x201000)");
-                core::hint::unreachable_unchecked();
-            }
             0x44415441 => { // DATA
                 put_dword(echo);
                 let mut location = 0;
@@ -68,6 +59,9 @@ pub unsafe extern "C" fn main() -> ! {
             }
             0x434f4d44 => { // COMD
                 put_dword(echo);
+                brom::uart_println("Hooking PL -> LK jump...");
+                preloader::install_bldr_jump_hook();
+                preloader::log::install_handshake_patch();
                 brom::ffi::cmd_handler()
             }
             _ => {
@@ -79,11 +73,17 @@ pub unsafe extern "C" fn main() -> ! {
 
 }
 
-fn put_dword(dword: u32) {
-    usbdl_put_data(&dword.swap_bytes(), 4)
+#[inline(always)]
+unsafe fn put_dword(dword: u32) {
+    brom::ffi::usbdl_put_dword(dword as *mut u32, 1)
 }
-fn get_dword(data: &mut u32) {
-    let mut recv = 0;
-    usbdl_get_data(&mut recv, 4);
-    *data = recv.swap_bytes()
+#[inline(always)]
+unsafe fn get_dword(data: &mut u32) {
+    *data = brom::ffi::usbdl_get_dword(null_mut(), 1);
+}
+unsafe fn wdt_reboot() -> ! {
+    brom::ffi::WATCHDOG.offset(8/4).write_volatile(0x1971);
+    brom::ffi::WATCHDOG.offset(0/4).write_volatile(0x22000014);
+    brom::ffi::WATCHDOG.offset(0x14/4).write_volatile(0x1209);
+    core::hint::unreachable_unchecked()
 }

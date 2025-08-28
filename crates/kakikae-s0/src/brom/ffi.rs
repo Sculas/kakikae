@@ -6,12 +6,13 @@ def_extern! { vars;
     DAA_PASSED_2 @ 0x102AD4 -> *mut u32,
     UART_REG0    @ 0x11002014 -> *mut u32,
     WATCHDOG     @ 0x10007000 -> *mut u32,
+    USBDL_PUT_WORD_FN  @ 0xE13F -> *mut u32,
 }
 def_extern! { fns;
-    usbdl_put_word     @ 0xE13F -> fn(), // wrong sig but we dont use this anyway
+    usbdl_get_dword    @ 0xE183 -> fn(n: *mut u32, sz: u32) -> u32,
+    usbdl_put_dword    @ 0xE1B7 -> fn(n: *const u32, sz: u32),
     usbdl_get_data     @ 0xE1F9 -> fn(n: *mut u32, sz: u32),
     usbdl_put_data     @ 0xE287 -> fn(n: *const u32, sz: u32),
     send_usb_response  @ 0x4C8F -> fn(arg1: u32, arg2: u32, arg3: u32),
     cmd_handler        @ 0xF029 -> fn(),
-    usb_buffer         @ 0x5261 -> fn(),
 }

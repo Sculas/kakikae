@@ -19,6 +19,6 @@ strip = true
 lto = true
 
 [dependencies]
-heapless = "0.8"
+heapless = "0.9.1"
 athook = { path = "../athook" }
 kakikae-shared = { path = "../kakikae-shared" }

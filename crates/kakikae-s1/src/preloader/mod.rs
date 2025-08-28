@@ -1,19 +1,18 @@
 use crate::pl_println;
+use crate::lk_println;
 use core::mem::transmute;
+use kakikae_shared::{PL_BASE, PL_SIZE};
 
 mod ffi;
 pub mod log;
 
-pub unsafe fn install_hooks() {
-    // 002229C0 LDR  R0, [SP,#0xD8+var_A8]
-    // 002229C2 MOV  R1, R4
-    // 002229C4 MOVW R2, #0x5920
-    // 002229C8 BL   bldr_jump64 <-- this is the instruction we want to replace
-    athook::install_hook_at(ffi::BLDR_JMP_HOOK_ADDR, bldr_jump64_hook as _);
-}
+athook::install_hooks!(install_bldr_jump_hook; (PL_BASE, PL_SIZE) {
+    "2D E9 F0 4E 04 46 91 46" @ 1,
+    bldr_jump64_hook(orig: _, addr: u32, arg1: u32, arg2: u32),
+});
 
 #[inline(never)]
-unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
+unsafe fn bldr_jump64_hook(orig: orig_bldr_jump64_hook, addr: u32, arg1: u32, arg2: u32) {
     pl_println!("Jumping from PL -> LK ({:#010X})", addr);
 
     // Force the boot reason to BR_POWER_KEY as indicated by MTK:
@@ -32,7 +31,7 @@ unsafe extern "C" fn bldr_jump64_hook(addr: u32, arg1: u32, arg2: u32) {
 
     // Continue the jump to Little Kernel (LK).
     pl_println!("Jumping to LK ({:#010X}, {:#010X})", arg1, arg2);
-    ffi::original_bldr_jump64(addr, arg1, arg2);
+    orig(addr, arg1, arg2);
 }
 
 #[rustfmt::skip]

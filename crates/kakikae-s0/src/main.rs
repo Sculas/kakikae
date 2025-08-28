@@ -8,6 +8,8 @@
     clippy::missing_safety_doc
 )]
 
+use core::ptr::null_mut;
+use crate::brom::ffi::WATCHDOG;
 
 pub mod brom;
 
@@ -26,23 +28,17 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> ! {
-
-    // todo: fix this
-    // Fix usbdl_put_data since it was corrupted by kamakiri2
-    let mpos = brom::ffi::usbdl_put_word as usize & 0xFFFFF + 7;
-    let (offset, _) = ldr_lit(mpos, *(mpos as *const u16) as usize);
-    // let usbdl_ptr = offset as *mut u32;
-    let usbdl_ptr = 0xe2a4 as *mut u32;
-    (*usbdl_ptr as *mut u32).offset(2).write_volatile(usbdl_ptr.offset(2).read_volatile());
-
+    WATCHDOG.write_volatile(0x22000064);
     // prevent timeout
     brom::ffi::send_usb_response(1, 0, 1);
 
 
-    // WORKAROUND: first 2 bytes returned by usbdl functions are garbage
-    // i dont know why this happens
-    // todo: find out why this happens
-    brom::ffi::usbdl_put_data(&0, 2);
+    // Fix usbdl send ptrs
+    let mpos = brom::ffi::USBDL_PUT_WORD_FN as usize + 7;
+    let offset = ldr_lit(mpos, *(mpos as *const u16));
+    let usbdl_ptr = offset as *mut u32;
+    (*usbdl_ptr as *mut u32).offset(2).write_volatile(usbdl_ptr.offset(2).read_volatile());
+
 
     // Disable security
     core::ptr::write_volatile(brom::ffi::SLA_PASSED_1, 1);
@@ -75,25 +71,23 @@ pub unsafe extern "C" fn main() -> ! {
     // Switch to stage 1
     // Should be consistent with link.x
     core::arch::asm!(
-            "ldr pc, ={const}",
-            const = sym kakikae_shared::S1_BASE_ADDR,
+            "ldr pc, ={stage1}",
+            stage1 = const kakikae_shared::S1_BASE_ADDR,
     );
     core::hint::unreachable_unchecked();
 }
-
-fn put_dword(dword: u32) {
-    brom::ffi::usbdl_put_data(&dword.swap_bytes(), 4)
+#[inline(always)]
+unsafe fn put_dword(dword: u32) {
+    brom::ffi::usbdl_put_dword(dword as *mut u32, 1)
 }
-fn get_dword(data: &mut u32) {
-    let mut recv = 0;
-    brom::ffi::usbdl_get_data(&mut recv, 4);
-    *data = recv.swap_bytes()
+#[inline(always)]
+unsafe fn get_dword(data: &mut u32) {
+    *data = brom::ffi::usbdl_get_dword(null_mut(), 1);
 }
-fn ldr_lit(curpc: usize, ins: usize) -> (usize, usize) {
-    let imm8 = ins & 0xFF;
-    let rt = (ins >> 8) & 7;
-    let pc = curpc / (4*4);
-    (pc + (imm8 * 4) + 4, rt)
+fn ldr_lit(curpc: usize, ins: u16) -> usize {
+    let imm8 = (ins & 0xFF) as usize;
+    let pc = curpc / 4 * 4;
+    pc + (imm8 * 4) + 4
 }
 unsafe fn wdt_reboot() -> ! {
     brom::ffi::WATCHDOG.offset(8/4).write_volatile(0x1971);

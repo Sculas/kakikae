@@ -282,9 +282,6 @@ async fn status_check(ep: &mut DeviceEndpoint) -> Result<u16, KakikaeError> {
 }
 #[allow(unused_must_use)]
 async fn stage_cmd(ep: &mut DeviceEndpoint, data: u32, await_result: bool) -> Result<(), KakikaeError> {
-    // todo: try to fix this
-    // WORKAROUND: attempt to flush the input to clear any garbage data
-    ep.ep_in.read(&mut [0; 4]);
     let data = data.to_be_bytes();
     ep.ep_out.write(&data)?;
     ep.ep_out.flush()?;
