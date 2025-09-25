@@ -1,16 +1,16 @@
 #![feature(int_roundings)]
 
 mod error;
-mod utils;
 mod kamakiri2;
+mod utils;
 
-use nusb::io::{EndpointRead, EndpointWrite};
-use nusb::{Device};
-use std::io::{stdout, Read, Write};
-use std::time::{Duration, Instant};
-use tokio::time::sleep;
 use crate::error::KakikaeError;
 use crate::kamakiri2::Kamakiri2;
+use nusb::Device;
+use nusb::io::{EndpointRead, EndpointWrite};
+use std::io::{Read, Write, stdout};
+use std::time::{Duration, Instant};
+use tokio::time::sleep;
 
 const SHORT_TIMEOUT: Duration = Duration::from_millis(5);
 const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
@@ -28,7 +28,6 @@ struct DeviceEndpoint {
 
 #[tokio::main]
 async fn main() -> Result<(), KakikaeError> {
-
     let mut usb_device = find_usb_device().await?;
     let mut dev_ep = connect_usb(&usb_device).await?;
 
@@ -39,7 +38,7 @@ async fn main() -> Result<(), KakikaeError> {
     println!("Device hwcode: 0x{hw_code:x}");
 
     if hw_code != 0x813 {
-        return Err(KakikaeError::UnsupportedDevice)
+        return Err(KakikaeError::UnsupportedDevice);
     }
 
     let stage0 = utils::read_stage_data("/kakikae-s0.bin")?;
@@ -68,7 +67,6 @@ async fn main() -> Result<(), KakikaeError> {
     Ok(())
 }
 async fn find_usb_device() -> Result<Device, KakikaeError> {
-
     println!("Waiting for device (USB)...");
     loop {
         for device in nusb::list_devices().await? {
@@ -77,9 +75,9 @@ async fn find_usb_device() -> Result<Device, KakikaeError> {
                 match device.open().await {
                     Ok(found) => {
                         println!("Found a device in BootROM mode.",);
-                        return Ok(found)
+                        return Ok(found);
                     }
-                    Err(e) => println!("Failed to open device: {e}")
+                    Err(e) => println!("Failed to open device: {e}"),
                 }
             }
         }
@@ -115,7 +113,7 @@ async fn handshake(ep: &mut DeviceEndpoint, handshake_magic: &[u8]) -> Result<()
     while i < handshake_magic.len() {
         let current_time = Instant::now();
         if (current_time - timer).as_secs() > 5 {
-            return Err(KakikaeError::HandshakeTimeout)
+            return Err(KakikaeError::HandshakeTimeout);
         }
         if let Ok(_) = ep.ep_out.write(&[handshake_magic[i]]) {
             ep.ep_out.flush()?;
@@ -167,7 +165,6 @@ async fn cmd_read_32(
         recv_ints.push(u32::from_be_bytes(recv))
     }
 
-
     let status2 = status_check(ep).await?;
     assert!(status2 <= 0xff);
     Ok(recv_ints)
@@ -181,11 +178,7 @@ async fn cmd_get_hwcode(ep: &mut DeviceEndpoint) -> Result<u16, KakikaeError> {
 
     Ok(u16::from_be_bytes(recv))
 }
-async fn cmd_send_da(
-    ep: &mut DeviceEndpoint,
-    addr: u32,
-    data: &[u8],
-) -> Result<(), KakikaeError> {
+async fn cmd_send_da(ep: &mut DeviceEndpoint, addr: u32, data: &[u8]) -> Result<(), KakikaeError> {
     echo(ep, &[0xd7], None).await?;
     echo(ep, &addr.to_be_bytes(), Some(4)).await?;
     echo(ep, &(data.len() as u32).to_be_bytes(), Some(4)).await?;
@@ -228,7 +221,7 @@ async fn cmd_register_access(
     offset: u32,
     length: u32,
     mut data: Vec<u8>,
-    check_status: bool
+    check_status: bool,
 ) -> Result<Vec<u8>, KakikaeError> {
     if let Ok(_) = echo(ep, &[0xda], None).await {
         data.resize(length as usize, 0);
@@ -253,7 +246,11 @@ async fn cmd_register_access(
     }
     Ok(data)
 }
-async fn echo(ep: &mut DeviceEndpoint, data: &[u8], size: Option<usize>) -> Result<(), KakikaeError> {
+async fn echo(
+    ep: &mut DeviceEndpoint,
+    data: &[u8],
+    size: Option<usize>,
+) -> Result<(), KakikaeError> {
     let size = if let Some(size) = size {
         size
     } else {
@@ -266,7 +263,7 @@ async fn echo(ep: &mut DeviceEndpoint, data: &[u8], size: Option<usize>) -> Resu
     let mut recv = vec![0; size];
     ep.ep_in.read(&mut recv)?;
     if data != recv {
-        return Err(KakikaeError::EchoMismatch(data.into(), recv))
+        return Err(KakikaeError::EchoMismatch(data.into(), recv));
     }
     Ok(())
 }
@@ -276,12 +273,16 @@ async fn status_check(ep: &mut DeviceEndpoint) -> Result<u16, KakikaeError> {
     let result = u16::from_be_bytes(recv);
     if result > 0xFF {
         Err(KakikaeError::StatusError(result))
-    } else { 
+    } else {
         Ok(result)
     }
 }
 #[allow(unused_must_use)]
-async fn stage_cmd(ep: &mut DeviceEndpoint, data: u32, await_result: bool) -> Result<(), KakikaeError> {
+async fn stage_cmd(
+    ep: &mut DeviceEndpoint,
+    data: u32,
+    await_result: bool,
+) -> Result<(), KakikaeError> {
     let data = data.to_be_bytes();
     ep.ep_out.write(&data)?;
     ep.ep_out.flush()?;
@@ -291,7 +292,7 @@ async fn stage_cmd(ep: &mut DeviceEndpoint, data: u32, await_result: bool) -> Re
         ep.ep_in.read(&mut recv)?;
         stdout().flush()?;
         if data != recv {
-            return Err(KakikaeError::EchoMismatch(data.into(), recv.into()))
+            return Err(KakikaeError::EchoMismatch(data.into(), recv.into()));
         }
     }
     Ok(())
@@ -299,7 +300,7 @@ async fn stage_cmd(ep: &mut DeviceEndpoint, data: u32, await_result: bool) -> Re
 async fn stage_write_data(
     ep: &mut DeviceEndpoint,
     data: &[u8],
-    location: u32
+    location: u32,
 ) -> Result<(), KakikaeError> {
     stage_cmd(ep, location, true).await?;
     stage_cmd(ep, data.len() as u32, true).await?;
