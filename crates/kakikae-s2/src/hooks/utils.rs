@@ -1,15 +1,21 @@
 use super::{LK_BASE, LK_SIZE};
 use crate::*;
-use super::follow_bl_insn;
+use athook::follow_bl_insn;
 use core::ffi::*;
 
 athook::pattern_match!(pattern_match; (LK_BASE, LK_SIZE) {
-    "? ? ? FF 22 68" @ 1 = follow_bl_insn,
-    pub !thumb fn mdelay(n: c_ulong)
+    "? ? ? FE 38 46 21 46" @ 1 = follow_bl_insn,
+    pub mdelay(n: c_ulong)
 }, {
     "10 B5 04 46 ? ? ? FF A0 42" @ 1,
-    pub !thumb fn get_timer(base: c_ulong) -> c_ulong
+    pub get_timer(base: c_ulong) -> c_ulong
 }, {
-    "0F B4 ? ? F0 B5 9B B0" @ 1,
-    pub !thumb fn dprintf(fmt: *const c_char) -> c_int = ...
+    "0F B4 3A 4B" @ 1,
+    pub dprintf(fmt: *const c_char) -> c_int = ...
+}, {
+    "? ? ? FD 04 46 B8 B1" @ 1 = follow_bl_insn,
+    pub malloc(size: usize) -> *mut u8
+}, {
+    "? ? ? FD 28 46 38 BD" @ 1 = follow_bl_insn,
+    pub free(data: *mut u8)
 });

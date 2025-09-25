@@ -1,0 +1,17 @@
+[package]
+name = "kakikae-cli"
+version = "0.1.0"
+edition = "2024"
+
+# workaround for https://github.com/rust-lang/vscode-rust/issues/729
+[[bin]]
+name = "kakikae-cli"
+test = false
+bench = false
+doctest = false
+
+[dependencies]
+nusb = { version = "0.2.0", features = ["tokio"] }
+tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "time"] }
+thiserror = "2.0.16"
+kakikae-shared = { path = "../kakikae-shared" }

@@ -1,13 +1,10 @@
 [package]
-name = "kakikae-s2"
-authors = ["Sculas"]
-version = "0.0.0"
+name = "kakikae-s0"
+version = "0.1.0"
 edition = "2024"
-publish = false
 
-# workaround for https://github.com/rust-lang/vscode-rust/issues/729
 [[bin]]
-name = "kakikae-s2"
+name = "kakikae-s0"
 test = false
 bench = false
 doctest = false
@@ -19,6 +16,4 @@ strip = true
 lto = true
 
 [dependencies]
-heapless = "0.9.1"
-athook = { path = "../athook" }
 kakikae-shared = { path = "../kakikae-shared" }
